@@ -1,0 +1,6 @@
+{
+  "name": "Creative Desk Planner",
+  "description": "Crea, personalizza ed esporta fogli di planner, agende, blocknote e calendari su una scrivania interattiva e colorata con stickers e stili.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
