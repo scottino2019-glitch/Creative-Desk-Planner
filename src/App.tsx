@@ -415,6 +415,13 @@ export default function App() {
       }) as any;
     };
 
+    // Helper to resolve paper background color inside React PDF exporter
+    const getSheetPaperBg = () => {
+      if (targetSheet.customPaperColor) return targetSheet.customPaperColor;
+      const found = COLORS.find((c) => c.accentTailwind === targetSheet.colorTheme || c.id === targetSheet.colorTheme);
+      return found ? found.lightBgHex : '#fff1f2';
+    };
+
     // Create a temporary stylesheet to force A4 desktop proportions during html2canvas capture on small screens
     const styleEl = document.createElement('style');
     styleEl.id = `temp-pdf-export-style-${targetSheet.id}`;
@@ -450,6 +457,22 @@ export default function App() {
         border-width: 2px !important;
         border-radius: 40px !important;
         box-shadow: none !important;
+        background-color: ${getSheetPaperBg()} !important;
+        background-image: ${
+          targetSheet.bgPattern === 'ruled' 
+          ? `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="28"><line x1="0" y1="27" x2="100" y2="27" stroke="%2393c5fd" stroke-width="1" stroke-opacity="0.4"/></svg>')` 
+          : targetSheet.bgPattern === 'grid'
+          ? `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="%23cbd5e1" stroke-width="1" stroke-opacity="0.4"/></svg>')`
+          : targetSheet.bgPattern === 'dotted'
+          ? `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="1.5" cy="1.5" r="1.5" fill="%2364748b" fill-opacity="0.3"/></svg>')`
+          : 'none'
+        } !important;
+        background-size: ${
+          targetSheet.bgPattern === 'ruled' ? '100% 28px' :
+          targetSheet.bgPattern === 'grid' ? '24px 24px' :
+          targetSheet.bgPattern === 'dotted' ? '20px 20px' :
+          'auto'
+        } !important;
       }
       
       /* Hide ALL UI elements and interaction labels */
@@ -653,7 +676,7 @@ export default function App() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Atelier Standalone - \${targetSheet.title}</title>
+  <title>Atelier Standalone - ${targetSheet.title}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -680,16 +703,17 @@ export default function App() {
 
   <style>
     .pattern-ruled {
-      background-image: linear-gradient(rgba(45, 36, 30, 0.06) 1px, transparent 1px);
-      background-size: 100% 27px;
+      background-size: 100% 28px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="28"><line x1="0" y1="27" x2="100" y2="27" stroke="%2393c5fd" stroke-width="1" stroke-opacity="0.4"/></svg>');
+      line-height: 28px;
     }
     .pattern-grid {
-      background-image: linear-gradient(rgba(45, 36, 30, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(45, 36, 30, 0.05) 1px, transparent 1px);
-      background-size: 20px 20px;
+      background-size: 24px 24px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="%23cbd5e1" stroke-width="1" stroke-opacity="0.4"/></svg>');
     }
     .pattern-dotted {
-      background-image: radial-gradient(rgba(45, 36, 30, 0.08) 1.5px, transparent 1.5px);
       background-size: 20px 20px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="1.5" cy="1.5" r="1.5" fill="%2364748b" fill-opacity="0.3"/></svg>');
     }
     [x-cloak] { display: none !important; }
     
@@ -706,7 +730,7 @@ export default function App() {
   </style>
 </head>
 <body 
-  style="\${themeStyles.replace(/\\s+/g, ' ')}"
+  style="${themeStyles.replace(/\s+/g, ' ')}"
   class="min-h-screen py-4 md:py-12 px-2 md:px-4 flex flex-col items-center justify-start md:justify-center font-sans select-none overflow-x-hidden"
 >
 
@@ -1272,8 +1296,11 @@ export default function App() {
           if (saved) {
             try {
               const parsed = JSON.parse(saved);
-              // Only load from localStorage if it represents a newer edit than this export file itself
-              if (parsed.savedAt && parsed.savedAt >= exportTime) {
+              // Only load from localStorage if the user is opening the exact same export version (matching exportedAt), 
+              // which means they are continuing their offline session on this file. 
+              // If they made new changes in the main React workspace and exported a brand-new file, 
+              // this.sheet.exportedAt will be higher/different, and we'll ignore the stale cache.
+              if (parsed.exportedAt === this.sheet.exportedAt) {
                 this.sheet = parsed;
               }
             } catch(e) {
@@ -1590,6 +1617,22 @@ export default function App() {
               box-sizing: border-box !important;
               border-radius: 40px !important;
               box-shadow: none !important;
+              background-color: \${this.getPaperBgHex()} !important;
+              background-image: \${
+                this.sheet.bgPattern === 'ruled' 
+                ? "url('data:image/svg+xml;utf8,<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" width=\\\"100\\\" height=\\\"28\\\"><line x1=\\\"0\\\" y1=\\\"27\\\" x2=\\\"100\\\" y2=\\\"27\\\" stroke=\\\"%2393c5fd\\\" stroke-width=\\\"1\\\" stroke-opacity=\\\"0.4\\\"/></svg>')" 
+                : this.sheet.bgPattern === 'grid'
+                ? "url('data:image/svg+xml;utf8,<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" width=\\\"24\\\" height=\\\"24\\\"><path d=\\\"M 24 0 L 0 0 0 24\\\" fill=\\\"none\\\" stroke=\\\"%23cbd5e1\\\" stroke-width=\\\"1\\\" stroke-opacity=\\\"0.4\\\"/></svg>')"
+                : this.sheet.bgPattern === 'dotted'
+                ? "url('data:image/svg+xml;utf8,<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" width=\\\"20\\\" height=\\\"20\\\"><circle cx=\\\"1.5\\\" cy=\\\"1.5\\\" r=\\\"1.5\\\" fill=\\\"%2364748b\\\" fill-opacity=\\\"0.3\\\"/></svg>')"
+                : "none"
+              } !important;
+              background-size: \${
+                this.sheet.bgPattern === 'ruled' ? '100% 28px' :
+                this.sheet.bgPattern === 'grid' ? '24px 24px' :
+                this.sheet.bgPattern === 'dotted' ? '20px 20px' :
+                'auto'
+              } !important;
             }
             button, select, form, nav, header, .no-export, .sticker-controls, #sheet-controls-panel { display: none !important; }
             input, textarea { border: none !important; background: transparent !important; outline: none !important; box-shadow: none !important; }
