@@ -617,7 +617,12 @@ export default function App() {
     const targetSheet = isMiniAppMode ? miniAppSheet : activeSheet;
     if (!targetSheet) return;
 
-    const sheetJson = JSON.stringify(targetSheet);
+    const sheetWithExportTime = {
+      ...targetSheet,
+      exportedAt: Date.now()
+    };
+    const sheetJson = JSON.stringify(sheetWithExportTime);
+    const colorsJson = JSON.stringify(COLORS);
     const theme = deskTheme;
 
     let themeStyles = '';
@@ -1142,7 +1147,7 @@ export default function App() {
           <template x-for="st in sheet.stickers" :key="st.id">
             <div 
               :id="'placed-sticker-' + st.id"
-              @click.stop="activeStickerId = (activeStickerId === st.id) ? null : st.id"
+              @click.stop="activeStickerId = st.id"
               :style="{
                 left: st.x + '%',
                 top: st.y + '%',
@@ -1151,33 +1156,33 @@ export default function App() {
               :class="activeStickerId === st.id ? 'ring-2 ring-dashed rounded-lg p-1' : ''"
               class="absolute z-30 select-none group border-stone-850"
               style="border-color: rgba(0,0,0,0.1);"
-              @mousedown="startDragSticker($event, st)"
-              @touchstart="startDragSticker($event, st)"
             >
-              <div class="pointer-events-auto">
-                <template x-if="st.type === 'emoji'">
-                  <span class="text-3xl filter drop-shadow-md leading-none select-none" x-text="st.content"></span>
-                </template>
-                <template x-if="st.type !== 'emoji'">
-                  <div 
-                    :style="{ backgroundColor: st.color || accentColor }"
-                    class="px-3.5 py-1 text-[11px] font-bold text-white tracking-wider rounded-md uppercase shadow-md select-none transform border border-white/20 whitespace-nowrap"
-                    style="transform: skewX(-4deg); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"
-                    x-text="st.content"
-                  ></div>
-                </template>
+              <div 
+                class="pointer-events-auto cursor-grab active:cursor-grabbing p-1.5 flex items-center justify-center"
+                @mousedown="startDragSticker($event, st)"
+                @touchstart="startDragSticker($event, st)"
+              >
+                <span x-show="st.type === 'emoji'" class="text-3xl filter drop-shadow-md leading-none select-none" x-text="st.content"></span>
+                <div 
+                  x-show="st.type !== 'emoji'"
+                  :style="{ backgroundColor: st.color || accentColor }"
+                  class="px-3.5 py-1 text-[11px] font-bold text-white tracking-wider rounded-md uppercase shadow-md select-none transform border border-white/20 whitespace-nowrap"
+                  style="transform: skewX(-4deg); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"
+                  x-text="st.content"
+                ></div>
               </div>
 
               <!-- Inline rotate/resize controls overlay -->
-              <div x-show="activeStickerId === st.id" class="absolute -top-12 left-1/2 -translate-x-1/2 bg-[#2D241E]/95 text-white p-1 rounded-xl shadow-lg border border-stone-700 flex gap-1 z-40 items-center scale-90 pointer-events-auto select-none" @mousedown.stop @touchstart.stop>
-                <button @click.stop="rotateSticker(st)" class="p-1 hover:bg-[#FF6B6B]/25 rounded text-white" title="Ruota">
-                  <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+              <div x-show="activeStickerId === st.id" class="sticker-controls absolute -top-14 left-1/2 -translate-x-1/2 bg-white text-stone-850 px-2.5 py-1.5 rounded-full shadow-xl border border-stone-200 flex gap-2 z-45 scale-100 items-center pointer-events-auto select-none" @mousedown.stop @touchstart.stop @click.stop>
+                <button @click.stop="scaleSticker(st, 'down')" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 active:scale-95 flex items-center justify-center font-black text-sm text-stone-800 transition-all cursor-pointer" title="Rimpicciolosci">-</button>
+                <button @click.stop="scaleSticker(st, 'up')" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 active:scale-95 flex items-center justify-center font-black text-sm text-stone-800 transition-all cursor-pointer" title="Ingrandisci">+</button>
+                <div class="h-4 w-[1px] bg-stone-200"></div>
+                <button @click.stop="rotateSticker(st)" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 active:scale-95 flex items-center justify-center text-stone-800 transition-all cursor-pointer" title="Ruota">
+                  <i data-lucide="rotate-cw" class="w-4 h-4"></i>
                 </button>
-                <button @click.stop="scaleSticker(st, 'up')" class="p-1.5 hover:bg-[#FF6B6B]/25 rounded text-white font-extrabold text-[10px]" title="Ingrandisci">+</button>
-                <button @click.stop="scaleSticker(st, 'down')" class="p-1.5 hover:bg-[#FF6B6B]/25 rounded text-white font-extrabold text-[10px]" title="Rimpicciolisci">-</button>
-                <div class="h-4 w-[1px] bg-stone-700"></div>
-                <button @click.stop="deleteSticker(st)" class="p-1 hover:bg-red-500/30 rounded text-red-400" title="Elimina">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5 text-stone-400"></i>
+                <div class="h-4 w-[1px] bg-stone-200"></div>
+                <button @click.stop="deleteSticker(st)" class="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 active:scale-95 flex items-center justify-center text-red-650 transition-all cursor-pointer font-black" title="Elimina">
+                  <i data-lucide="trash-2" class="w-4 h-4 text-red-600"></i>
                 </button>
               </div>
             </div>
@@ -1257,13 +1262,20 @@ export default function App() {
         customBadgeColor: '#f59e0b',
         MONTHS_IT: ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'],
         
+        colorsList: ${colorsJson},
+        
         init() {
           // Check localStorage saved state
           const storageKey = 'mini_app_standalone_sheet_v4_' + this.sheet.id;
           const saved = localStorage.getItem(storageKey);
+          const exportTime = this.sheet.exportedAt || 0;
           if (saved) {
             try {
-              this.sheet = JSON.parse(saved);
+              const parsed = JSON.parse(saved);
+              // Only load from localStorage if it represents a newer edit than this export file itself
+              if (parsed.savedAt && parsed.savedAt >= exportTime) {
+                this.sheet = parsed;
+              }
             } catch(e) {
               console.error('Failed to load local saved state', e);
             }
@@ -1272,6 +1284,7 @@ export default function App() {
           this.customColor = this.getThemeColor();
           
           this.$watch('sheet', value => {
+            if (value) value.savedAt = Date.now();
             localStorage.setItem(storageKey, JSON.stringify(value));
           }, { deep: true });
           
@@ -1280,37 +1293,20 @@ export default function App() {
         
         saveState() {
           const storageKey = 'mini_app_standalone_sheet_v4_' + this.sheet.id;
+          this.sheet.savedAt = Date.now();
           localStorage.setItem(storageKey, JSON.stringify(this.sheet));
         },
         
         getThemeColor() {
           if (this.sheet.customAccentColor) return this.sheet.customAccentColor;
-          const colors = {
-            purple: '#a855f7',
-            pink: '#ec4899',
-            emerald: '#10b981',
-            amber: '#f59e0b',
-            sky: '#0ea5e9',
-            rose: '#f43f5e',
-            peach: '#f97316',
-            stone: '#78716c'
-          };
-          return colors[this.sheet.colorTheme] || '#ec4899';
+          const found = this.colorsList.find(c => c.accentTailwind === this.sheet.colorTheme || c.id === this.sheet.colorTheme);
+          return found ? found.accentHex : '#ec4899';
         },
         
         getPaperBgHex() {
           if (this.sheet.customPaperColor) return this.sheet.customPaperColor;
-          const colorsLight = {
-            purple: '#faf5ff',
-            pink: '#fff1f2',
-            emerald: '#ecfdf5',
-            amber: '#fefbeb',
-            sky: '#f0f9ff',
-            rose: '#fff1f2',
-            peach: '#fff7ed',
-            stone: '#f5f5f4'
-          };
-          return colorsLight[this.sheet.colorTheme] || '#fafafa';
+          const found = this.colorsList.find(c => c.accentTailwind === this.sheet.colorTheme || c.id === this.sheet.colorTheme);
+          return found ? found.lightBgHex : '#fff1f2';
         },
         
         getFontFamily() {
@@ -1469,8 +1465,9 @@ export default function App() {
         // Stickers handling
         addPresetEmoji(emoji) {
           if (!this.sheet.stickers) this.sheet.stickers = [];
+          const newId = 'st_' + Date.now() + Math.random().toString(36).substring(2, 5);
           this.sheet.stickers.push({
-            id: 'st_' + Date.now() + Math.random().toString(36).substring(2, 5),
+            id: newId,
             type: 'emoji',
             content: emoji,
             x: 50,
@@ -1478,7 +1475,7 @@ export default function App() {
             scale: 1.0,
             rotation: 0
           });
-          this.activeStickerId = 'st_' + Date.now();
+          this.activeStickerId = newId;
           this.saveState();
           this.$nextTick(() => { window.lucide.createIcons(); });
         },
@@ -1486,8 +1483,9 @@ export default function App() {
         addCustomBadge() {
           if (!this.customBadgeText.trim()) return;
           if (!this.sheet.stickers) this.sheet.stickers = [];
+          const newId = 'st_' + Date.now() + Math.random().toString(36).substring(2, 5);
           this.sheet.stickers.push({
-            id: 'st_' + Date.now() + Math.random().toString(36).substring(2, 5),
+            id: newId,
             type: 'badge',
             content: this.customBadgeText.trim().toUpperCase(),
             color: this.customBadgeColor,
@@ -1497,16 +1495,19 @@ export default function App() {
             rotation: 0
           });
           this.customBadgeText = '';
+          this.activeStickerId = newId;
           this.saveState();
           this.$nextTick(() => { window.lucide.createIcons(); });
         },
         
         rotateSticker(st) {
+          if (st.rotation === undefined || st.rotation === null) st.rotation = 0;
           st.rotation = (st.rotation + 15) % 360;
           this.saveState();
         },
         
         scaleSticker(st, direction) {
+          if (st.scale === undefined || st.scale === null) st.scale = 1.0;
           const diff = direction === 'up' ? 0.15 : -0.15;
           st.scale = Math.max(0.5, Math.min(2.5, parseFloat((st.scale + diff).toFixed(2))));
           this.saveState();
@@ -1519,6 +1520,10 @@ export default function App() {
         },
         
         startDragSticker(e, st) {
+          // Avoid initiating drag if clicking/touching the controls overlay or buttons
+          if (e.target.closest('.sticker-controls') || e.target.closest('button') || e.target.closest('i')) {
+            return;
+          }
           this.activeStickerId = st.id;
           const paper = document.getElementById('sheet-paper-root');
           if (!paper) return;
