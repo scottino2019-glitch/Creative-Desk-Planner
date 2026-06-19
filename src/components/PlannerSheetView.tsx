@@ -388,7 +388,7 @@ export default function PlannerSheetView({
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setActiveStickerId(isSelected ? null : st.id);
+                  setActiveStickerId(st.id);
                 }}
               >
                 {/* Sticker Render Style depending on type */}
@@ -419,13 +419,15 @@ export default function PlannerSheetView({
                 {/* Sticker Interactive control tools (Shown when selected/active) */}
                 {isSelected && (
                   <div 
-                    className="absolute -top-11 left-1/2 -translate-x-1/2 bg-white/95 border border-gray-200 shadow-lg px-2 py-1 rounded-full flex gap-1.5 items-center z-40 scale-75 md:scale-95 origin-bottom backdrop-blur-md"
+                    className="absolute -top-14 left-1/2 -translate-x-1/2 bg-white border border-gray-200/80 shadow-xl px-2.5 py-1.5 rounded-full flex gap-2 items-center z-45 scale-100 md:scale-110 origin-bottom backdrop-blur-md pointer-events-auto"
                     onClick={(e) => e.stopPropagation()} // prevent deselect
+                    onMouseDown={(e) => e.stopPropagation()} // prevent drag trigger or text select
+                    onTouchStart={(e) => e.stopPropagation()} // prevent drag trigger or touch gestures
                   >
                     {/* Scale tools */}
                     <button
                       onClick={(e) => handleStickerScale(e, st.id, 'down')}
-                      className="w-5.5 h-5.5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-xs cursor-pointer text-gray-700"
+                      className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 active:scale-90 flex items-center justify-center font-black text-sm cursor-pointer text-stone-800 transition-all select-none"
                       title="Rimpicciolisci (-) "
                       id={`scale-down-st-${st.id}`}
                     >
@@ -433,35 +435,35 @@ export default function PlannerSheetView({
                     </button>
                     <button
                       onClick={(e) => handleStickerScale(e, st.id, 'up')}
-                      className="w-5.5 h-5.5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-xs cursor-pointer text-gray-700"
+                      className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 active:scale-90 flex items-center justify-center font-black text-sm cursor-pointer text-stone-800 transition-all select-none"
                       title="Ingrandisci (+)"
                       id={`scale-up-st-${st.id}`}
                     >
                       +
                     </button>
 
-                    <span className="w-[1px] h-3 bg-gray-200" />
+                    <span className="w-[1px] h-4 bg-gray-200" />
 
                     {/* Rotation triggers */}
                     <button
                       onClick={(e) => handleStickerRotate(e, st.id)}
-                      className="w-5.5 h-5.5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center cursor-pointer text-gray-700"
+                      className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 active:scale-90 flex items-center justify-center cursor-pointer text-stone-800 transition-all select-none"
                       title="Ruota di 15°"
                       id={`rotate-st-${st.id}`}
                     >
-                      <RotateCw className="w-3 h-3" />
+                      <RotateCw className="w-4 h-4" />
                     </button>
 
-                    <span className="w-[1px] h-3 bg-gray-200" />
+                    <span className="w-[1px] h-4 bg-gray-200" />
 
                     {/* Delete trigger */}
                     <button
                       onClick={(e) => handleStickerDelete(e, st.id)}
-                      className="w-5.5 h-5.5 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center text-red-600 font-bold cursor-pointer"
+                      className="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 active:scale-90 flex items-center justify-center text-red-600 font-extrabold cursor-pointer transition-all select-none"
                       title="Stacca Sticker"
                       id={`delete-st-${st.id}`}
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4 stroke-[2.5]" />
                     </button>
                   </div>
                 )}
